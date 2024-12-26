@@ -67,6 +67,7 @@ class Util {
         $product_names = [];
         $product_codes = [];
         $prices = [];
+        $quantity = [];
         
     
         if (isset($data)) {
@@ -75,6 +76,7 @@ class Util {
                     $product_names[] = $dt['name'];  
                     $product_codes[$dt['name']] = $dt['code']; 
                     $prices[] = $dt['price'];
+                    $quantity = $dt['quantity'];
                 } 
             }
         }
@@ -83,7 +85,8 @@ class Util {
         return [
             'product_names' => $product_names,
             'product_codes' => $product_codes,
-            'prices' => $prices
+            'prices' => $prices,
+            'quantity' => $quantity
         ];
     }
     

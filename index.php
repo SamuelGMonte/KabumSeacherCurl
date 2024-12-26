@@ -19,7 +19,7 @@ $fileName = readline("Nome do arquivo a ser salvo como XLSX: ");
 
 $csv2excel->convertCsvToXlsx($filePath . $fileName);
 
-echo "Arquivo criado com o nome $fileName em: " . $filePath . $fileName . ".xlsx";
+
 
 
 

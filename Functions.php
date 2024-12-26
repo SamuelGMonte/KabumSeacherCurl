@@ -162,7 +162,7 @@ class Functions {
         $pageNumber = 0;
         $productFails = 0;
         $productNumber = 0;
-        $headers = ['ID do produto', 'Nome do Produto', 'Preço'];
+        $headers = ['ID do produto', 'Nome do Produto', 'Preço', 'Disponiveis'];
 
         if ($productsFile) {
             fputcsv($productsFile, $headers);
@@ -173,17 +173,16 @@ class Functions {
                     $code = $details['product_codes'][$name] ?? null;
                     $price = $details['prices'][$index] ?? null;
                     $filtered_price = Util::filter_price($price, $max_price, $min_price);
-                    
+                    $quantity = $details['quantity'];
+
                     if ($filtered_price !== null) {
                         $line = [
                             'Id' => $code,
                             'Produto' => $name,
-                            'Preco' => $filtered_price
+                            'Preco' => "R$ " . $filtered_price,
+                            'Quantidade' => $quantity
                         ];
                         fputcsv($productsFile, $line, ',', '"');
-                        // if (!in_array($line, $lines)) { 
-                        //     fwclsrite($productsFile, $line . PHP_EOL);
-                        // }
                     } else {
                         $productFails++;
                     }

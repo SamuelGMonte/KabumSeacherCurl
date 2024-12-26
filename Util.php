@@ -97,14 +97,11 @@ class Util {
     }
 
     public static function filter_price($price, $max_price, $min_price) {
-        
         if (is_numeric($price) && is_numeric($max_price) && is_numeric($min_price)) {
             if ($price < $min_price || $price > $max_price) {
                 return null;
             }
         }
-        
-
         return $price;
     }
    

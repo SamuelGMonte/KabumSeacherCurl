@@ -6,6 +6,7 @@ class Functions {
     private $agent = 'Mozilla/5.0 (Windows NT 6.2; WOW64; rv:17.0) Gecko/20100101 Firefox/17.0';
 
     public $multiCurl;
+    public $json_response;
 
     public function __construct() {
         $this->multiCurl = curl_multi_init();
@@ -45,35 +46,79 @@ class Functions {
     public function execute_concurrent_requests($url, $pages, $max_price, $min_price) {
         $curl_handles = [];
         $this->multiCurl = curl_multi_init();
-    
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: */*',
+            'Accept-Language: en-US,en;q=0.9',
+            'Connection: keep-alive',
+            'sec-ch-ua: "Google Chrome";v="117"',
+            'sec-ch-ua-mobile: ?0',
+            'sec-ch-ua-platform: "Windows"',
+            'Sec-Fetch-Dest: empty',
+            'Sec-Fetch-Mode: cors',
+            'Sec-Fetch-Site: same-origin',
+        ]);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+        curl_setopt($ch, CURLOPT_COOKIEJAR, '');
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+        
+        if ($response) {
+            $mainElem = Util::get_json_content($response);
+            $json_obj = json_decode(preg_replace('/<[^>]*>/', '', $mainElem), true);
+            $totalPages = ceil($json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount']);
+            if($pages < 0 || $pages > $totalPages) {
+                die(json_encode(["status" => "error", "message" => "Pagina inexistente"]));
+            }
+        } else {
+        }
+
         for ($i = 1; $i <= $pages; $i++) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url . "?page_number=" . $i);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: */*',
+                'Accept-Language: en-US,en;q=0.9',
+                'Connection: keep-alive',
+                'sec-ch-ua: "Google Chrome";v="117"',
+                'sec-ch-ua-mobile: ?0',
+                'sec-ch-ua-platform: "Windows"',
+                'Sec-Fetch-Dest: empty',
+                'Sec-Fetch-Mode: cors',
+                'Sec-Fetch-Site: same-origin',
+            ]);
+            curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+            curl_setopt($ch, CURLOPT_COOKIEJAR, '');
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
             curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+            
             curl_multi_add_handle($this->multiCurl, $ch);
             $curl_handles[] = $ch;
         }
-
-    
-        do {
-            $status = curl_multi_exec($this->multiCurl, $active);
-            if ($status == CURLM_OK && $active) {
-                curl_multi_select($this->multiCurl);
-            }
-        } while ($status == CURLM_OK && $active);
         
-    
+        
+        $running = null;
+        do {
+            curl_multi_exec($this->multiCurl, $running);
+        } while ($running);
+        
+        
         $filtered_jsons = [];
         $all_product_details = [];
-    
+        
         foreach ($curl_handles as $index => $ch) {
             $response = curl_multi_getcontent($ch);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
+
             if ($http_code == 404) {
-                die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
+                die(json_encode(["error" => "true", "message" => "404"]));
             } else if ($http_code == 200 && !empty($response)) {
                 $mainElem = Util::get_json_content($response);
                 $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
@@ -84,35 +129,81 @@ class Functions {
                 $product_details = Util::get_products_details($json_obj_filtered);
                 $all_product_details[] = $product_details;
             } else {
-                die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
+                die(json_encode(["error" => "true", "message" => "erro desconhecido"]));
             }
     
             curl_multi_remove_handle($this->multiCurl, $ch);
             curl_close($ch);
         }
     
-        $productsFile = fopen("products.txt", 'a');
+        $filePath = __DIR__ . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "csv" . DIRECTORY_SEPARATOR . "products.csv";
+
+        $directoryPath = dirname($filePath);
+
+        if (!is_dir($directoryPath)) {
+            mkdir($directoryPath, 0755, true);
+        }
+
+        if (!file_exists($filePath)) {
+            $fileHandle = fopen($filePath, 'w');
+            if ($fileHandle) {
+                fclose($fileHandle);
+                $this->json_response =  json_encode(["status" => "success", "message" => "Arquivo criado com sucesso em: $filePath"]) . "\n";
+            } 
+            else {
+                die(json_encode(["status" => "error", "message" => "Erro ao criar o arquivo em: $filePath"]) . "\n");
+            }
+        }
+
+        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $lines = array_unique($lines);
+        $productsFile = fopen($filePath, 'w');
+
+        $pageNumber = 0;
+        $productFails = 0;
+        $productNumber = 0;
+        $headers = ['ID do produto', 'Nome do Produto', 'Preço'];
+
         if ($productsFile) {
+            fputcsv($productsFile, $headers);
             foreach ($all_product_details as $details) {
+                $pageNumber++;
                 foreach ($details['product_names'] as $index => $name) {
-                    $code = $details['product_codes'][$name] ?? 'Unknown Code';
-                    $price = $details['prices'][$index] ?? 'Unknown Price';
+                    $productNumber++;
+                    $code = $details['product_codes'][$name] ?? null;
+                    $price = $details['prices'][$index] ?? null;
                     $filtered_price = Util::filter_price($price, $max_price, $min_price);
-                    if ($filtered_price === NULL) {
-                        die(json_encode(["status" => "error", "message" => "Intervalo de valor nao encontrado"]) . "\n");
+                    
+                    if ($filtered_price !== null) {
+                        $line = [
+                            'Id' => $code,
+                            'Produto' => $name,
+                            'Preco' => $filtered_price
+                        ];
+                        fputcsv($productsFile, $line, ',', '"');
+                        // if (!in_array($line, $lines)) { 
+                        //     fwclsrite($productsFile, $line . PHP_EOL);
+                        // }
+                    } else {
+                        $productFails++;
                     }
-                    fwrite($productsFile, "Id: $code, Produto: $name, Preco: $filtered_price" . PHP_EOL);
+                }
+                if($productFails == $productNumber) {
+                    echo "Nenhum produto com o valor especificado encontrado na pagina " . $pageNumber . PHP_EOL;
                 }
             }
+
+            if($productFails == $productNumber) {
+                die(json_encode(["status" => "error", "message" => "Nenhum produto encontrado, arquivo nao sera salvo."]) . "\n");
+            }
+            
             fclose($productsFile);
-            echo "Produtos salvos no arquivo produtos.txt" . PHP_EOL;
+            $this->json_response = json_encode(["status" => "success", "message" => "Produtos salvos no arquivo produtos.csv"]) . "\n";
         } else {
-            echo "Error: Erro ao salvar o arquivo" . PHP_EOL;
+            $this->json_response = json_encode(["status" => "error", "message" => "Erro ao abrir o arquivo para escrita"]) . "\n";
         }
-    
-        array_unique(file("products.txt"));
-    
-        return $filtered_jsons;
+        
+        return $this->json_response;
     }
     
 

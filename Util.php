@@ -36,32 +36,18 @@ class Util {
                 }
             }
         } else {
-            // Handle the case where 'data' is not set or is null
             echo "Key 'data' does not exist.<br>";
         }
         return $json;
     }
 
-    public static function get_item_count($json) {
-        $totalItemsCount = $json['props']['pageProps']['data']['catalogServer']['meta']['totalItemsCount'];
-        $totalPagesCount = $json['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'] ?? null;
 
-        $response = "";
-        if ($totalItemsCount && $totalPagesCount) {
-            $response = $totalItemsCount . " resultados disponíveis em " 
-                    . $totalPagesCount . " páginas.";
-        } else {
-            $response = "Informações insuficientes para exibir resultados.";
-        }
-
-        return $response;
-    }
 
    public static function get_products_details($json) {
         $data = $json['props']['pageProps']['data']['catalogServer']['data'];
         
         if (empty($data)) {
-            die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
+            die(json_encode(["error" => "true", "message" => "pagina nao existe"]) . "\n");
         }
         
         $product_names = [];

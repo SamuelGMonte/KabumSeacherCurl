@@ -43,9 +43,11 @@ class Functions {
         curl_multi_close($this->multiCurl);
     }
 
-    public function execute_concurrent_requests($url, $pages, $max_price, $min_price) {
+    public function execute_concurrent_requests($url, $productName, $pages, $max_price, $min_price) {
         $curl_handles = [];
         $this->multiCurl = curl_multi_init();
+        
+        $url = $url . urlencode($productName);
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -72,10 +74,15 @@ class Functions {
             $mainElem = Util::get_json_content($response);
             $json_obj = json_decode(preg_replace('/<[^>]*>/', '', $mainElem), true);
             $totalPages = ceil($json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount']);
-            if($pages < 0 || $pages > $totalPages) {
-                die(json_encode(["status" => "error", "message" => "Pagina inexistente"]));
+            if($totalPages == null) {
+                die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])) . "\n"; 
             }
-        } else {
+            else if($pages < 0) {
+                die(json_encode(["status" => "error", "message" => "Pagina inexistente"])) . "\n";
+            } 
+            else if($pages > $totalPages) {
+                echo "numero de paginas: $pages maior que o total disponivel, efetuando buscas ate a pagina: $totalPages" . "\n";
+            }
         }
 
         for ($i = 1; $i <= $pages; $i++) {
@@ -118,7 +125,8 @@ class Functions {
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
             if ($http_code == 404) {
-                die(json_encode(["error" => "true", "message" => "404"]));
+                echo json_encode(["error" => "true", "message" => "status 404"]);
+                continue;
             } else if ($http_code == 200 && !empty($response)) {
                 $mainElem = Util::get_json_content($response);
                 $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
@@ -128,8 +136,10 @@ class Functions {
     
                 $product_details = Util::get_products_details($json_obj_filtered);
                 $all_product_details[] = $product_details;
-            } else {
-                die(json_encode(["error" => "true", "message" => "erro desconhecido"]));
+            } 
+            else {
+                echo json_encode(["error" => "true", "message" => "erro desconhecido index: $index"]) . "\n";
+                continue;
             }
     
             curl_multi_remove_handle($this->multiCurl, $ch);
@@ -175,7 +185,9 @@ class Functions {
                     $filtered_price = Util::filter_price($price, $max_price, $min_price);
                     $quantity = $details['quantity'];
 
-                    if ($filtered_price !== null) {
+                    $haystackLc = str_replace(' ', '', strtolower($name));
+                    $productLc = str_replace(' ', '', strtolower($productName));
+                    if ($filtered_price !== null && str_contains($haystackLc, $productLc)) {
                         $line = [
                             'Id' => $code,
                             'Produto' => $name,

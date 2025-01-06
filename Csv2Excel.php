@@ -23,30 +23,27 @@ class Csv2Excel {
             mkdir($filePath, 0755, true);
         }
         
-        if(file_exists($xlsx . ".xlsx")) {
-            $overwrite = readline("Arquivo ja existe, deseja sobrescrever? Y / N: ");
-            switch(strtolower($overwrite)) {
-                case 'y':
-                    $spreadsheet = new Spreadsheet();
-                    $writer = new Xlsx($spreadsheet);
-                    $writer->save($xlsx . ".xlsx");
-
-                    $fileName = basename($xlsx) . ".xlsx";
-                    echo "Arquivo sobrescrito com o nome " . $fileName . " em: " . $filePath . $xlsx . ".xlsx";
-                    return;
-
-                case 'n':
-                    echo "Operação cancelada. Nenhuma alteração foi feita.\n";
-                    return;
-
-                default:
-                echo "Opcao invalida";
+        if (file_exists($xlsx)) {
+            echo "Arquivo já existe. Deseja sobrescrever? (Y/N): ";
+            $overwrite = strtolower(trim(fgets(STDIN)));
+            if ($overwrite === 'y') {
+                $reader = new Csv();
+                $spreadsheet = $reader->load($this->csvFile);
+                $writer = new Xlsx($spreadsheet);
+                $writer->save($xlsx); 
+                
+                echo "Arquivo sobrescrito com sucesso: $xlsx\n";
+            } elseif ($overwrite === 'n') {
+                echo "Operação cancelada.\n";
+            } else {
+                echo "Opção inválida.\n";
             }
+            return;
         }
         
         $spreadsheet = $reader->load($this->csvFile); 
         $writer = new Xlsx($spreadsheet);
-        $writer->save($xlsx . ".xlsx"); 
+        $writer->save($xlsx); 
 
         $fileName = basename($xlsx);
 

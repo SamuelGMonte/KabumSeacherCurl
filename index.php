@@ -12,12 +12,12 @@ $min_price = (int) readline("Digite o preco minimo do produto desejado ");
 $funcs = new Functions();
 $csv2excel = new Csv2Excel();
 
-$response = $funcs->execute_concurrent_requests("https://www.kabum.com.br/busca/" . $a, $pag, $max_price, $min_price);
+$response = $funcs->execute_concurrent_requests("https://www.kabum.com.br/busca/", $a, $pag, $max_price, $min_price);
 print($response);
 
 $fileName = readline("Nome do arquivo a ser salvo como XLSX: ");
 
-$csv2excel->convertCsvToXlsx($filePath . $fileName);
+$csv2excel->convertCsvToXlsx($filePath . $fileName . ".xlsx");
 
 
 

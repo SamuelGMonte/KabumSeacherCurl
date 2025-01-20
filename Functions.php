@@ -47,7 +47,7 @@ class Functions {
         $curl_handles = [];
         $this->multiCurl = curl_multi_init();
         
-        $url = $url . urlencode($productName);
+        $url = $url . str_replace("+", "-", urlencode($productName));
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -73,7 +73,8 @@ class Functions {
         if ($response) {
             $mainElem = Util::get_json_content($response);
             $json_obj = json_decode(preg_replace('/<[^>]*>/', '', $mainElem), true);
-            $totalPages = ceil($json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount']);
+            $totalPages = $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'];
+            file_put_contents("not-json.json", json_encode($json_obj));
             if($totalPages == null) {
                 die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])) . "\n"; 
             }

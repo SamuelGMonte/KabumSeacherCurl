@@ -71,7 +71,7 @@ class Functions {
         curl_close($ch);
         
         if ($response) {
-            $mainElem = Util::get_json_content($response);
+            $mainElem = Util::get_json_content_kabum($response);
             $json_obj = json_decode(preg_replace('/<[^>]*>/', '', $mainElem), true);
             $totalPages = $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'];
             file_put_contents("not-json.json", json_encode($json_obj));
@@ -129,7 +129,7 @@ class Functions {
                 echo json_encode(["error" => "true", "message" => "status 404"]);
                 continue;
             } else if ($http_code == 200 && !empty($response)) {
-                $mainElem = Util::get_json_content($response);
+                $mainElem = Util::get_json_content_kabum($response);
                 $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
                 $json_obj = json_decode($mainElem, true);
                 $json_obj_filtered = Util::filter_json($json_obj);

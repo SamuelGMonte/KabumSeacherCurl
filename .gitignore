@@ -1,2 +1,6 @@
 vendor/
 data/
+*.json
+*.xlsx
+
+!composer.json

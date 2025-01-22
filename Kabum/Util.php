@@ -9,7 +9,7 @@ class Util {
     }
 
 
-    public static function get_json_content($ch) {
+    public static function get_json_content_kabum($ch) {
         
         if (empty($ch)) {
             echo "Received empty content.<br>";
@@ -17,7 +17,6 @@ class Util {
         }
 
         @self::$dom->loadHTML($ch);
-        
 
         $mainElem = self::$dom->getElementById("__NEXT_DATA__");
 

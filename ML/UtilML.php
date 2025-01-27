@@ -25,34 +25,31 @@ class UtilML {
 
         if($mainElem->length > 0) {
             $output = $mainElem->item(0)->nodeValue;
+
+            $optimizedData = self::optimize_json_ml($output);
+
+            $json = json_encode($optimizedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE); 
+
+            file_put_contents("overflow2.json", $json);
+
         }
         else {
-            echo "No JSON-LD script tag found.";
+            echo "JSON nao encontrado." . PHP_EOL;
         }
-        // $output = $mainElem->getAttribute($mainElem);
 
-        return $output;
-    }
-
-    public static function filter_json($json) {
-        
-
-        if (isset($json['props']['pageProps']['data'])) {
-            foreach ($json['props']['pageProps']['data'] as $subKey => $subValue) {
-                if ($subKey == 'cookieIsMobile' || $subKey == 'categories') {
-                    unset($json['props']['pageProps']['data'][$subKey]);
-                }
-            }
-        } else {
-            echo "Key 'data' does not exist.<br>";
-        }
         return $json;
     }
 
 
+    public static function optimize_json_ml($json_string) {
+        $json_obj = json_decode($json_string, true);
+        return $json_obj['pageState']['initialState'];
+    }
 
-   public static function get_products_details($json) {
-        $data = $json['props']['pageProps']['data']['catalogServer']['data'];
+
+   public static function get_products_details_ml($json_string) {
+        $json = json_decode($json_string, true);
+        $data = $json['results'];
         
         if (empty($data)) {
             die(json_encode(["error" => "true", "message" => "pagina nao existe"]) . "\n");
@@ -61,17 +58,28 @@ class UtilML {
         $product_names = [];
         $product_codes = [];
         $prices = [];
-        $quantity = [];
+        // $quantity = [];
         
-    
         if (isset($data)) {
             foreach($data as $dt) {
-                if (isset($dt['name'], $dt['code'], $dt['price'])) {
-                    $product_names[] = $dt['name'];  
-                    $product_codes[$dt['name']] = $dt['code']; 
-                    $prices[] = $dt['price'];
-                    $quantity = $dt['quantity'];
-                } 
+                if(isset($dt['polycard'])) {
+                    $usable_path = $dt['polycard']['components'];
+                    foreach($usable_path as $formated) {
+                        if (isset($formated['type']) && $formated['type'] === 'price') {
+                            $prices[] = $formated['price']['current_price']['value'] ?? null; 
+                        } else if($formated['type'] === 'title') {
+                            $product_names[] = $formated['title']['text'];
+                        }
+                    }
+
+                }
+
+                // if (isset($usable_path['title'], $usable_path['price']['current_price']['value'])) {
+                //     $product_names[] = $usable_path['title']['text'];  
+                //     $product_codes[$usable_path['title']['text']] =  $dt['polycard']['metadata']['product_id']; 
+                //     $prices[] = $usable_path['price']['current_price']['value'];
+                //     // $quantity = $dt['quantity'];
+                // } 
             }
         }
         
@@ -80,7 +88,7 @@ class UtilML {
             'product_names' => $product_names,
             'product_codes' => $product_codes,
             'prices' => $prices,
-            'quantity' => $quantity
+            // 'quantity' => $quantity
         ];
     }
     

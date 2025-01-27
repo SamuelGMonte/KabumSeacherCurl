@@ -217,9 +217,6 @@ class Functions {
         
         return $this->json_response;
     }
-    
 
-    
-    
 }
 ?>

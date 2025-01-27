@@ -7,20 +7,27 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 class Csv2Excel {
-    public $csvFile = __DIR__ . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "csv" . DIRECTORY_SEPARATOR . "products.csv";
+    
+    public function convertCsvToXlsx($website_option, $xlsx) {
+        switch($website_option) {
+            case "1":
+                $csvFile = __DIR__ . DIRECTORY_SEPARATOR  . "Kabum" . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "csv" . DIRECTORY_SEPARATOR . "products.csv";
+                break;
+            case "2":
+                $csvFile = __DIR__ . DIRECTORY_SEPARATOR  . "ML" . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "csv" . DIRECTORY_SEPARATOR . "products.csv";
+            break;
+        }
 
-    public function convertCsvToXlsx($xlsx) {
-        $filePath = dirname($xlsx) . DIRECTORY_SEPARATOR;
 
-        if (!file_exists($this->csvFile)) {
+        if (!file_exists($csvFile)) {
             die("Erro: O arquivo CSV não foi encontrado.\n");
         }
         
         $reader = new Csv();
 
         
-        if (!is_dir($filePath)) {
-            mkdir($filePath, 0755, true);
+        if (!is_dir(dirname($xlsx))) {
+            mkdir(dirname($xlsx), 0755, true);
         }
         
         if (file_exists($xlsx)) {
@@ -28,7 +35,7 @@ class Csv2Excel {
             $overwrite = strtolower(trim(fgets(STDIN)));
             if ($overwrite === 'y') {
                 $reader = new Csv();
-                $spreadsheet = $reader->load($this->csvFile);
+                $spreadsheet = $reader->load($csvFile);
                 $writer = new Xlsx($spreadsheet);
                 $writer->save($xlsx); 
                 
@@ -41,13 +48,13 @@ class Csv2Excel {
             return;
         }
         
-        $spreadsheet = $reader->load($this->csvFile); 
+        $spreadsheet = $reader->load($csvFile); 
         $writer = new Xlsx($spreadsheet);
         $writer->save($xlsx); 
 
         $fileName = basename($xlsx);
 
-        echo "Novo arquivo criado com o nome: $fileName em: $filePath\n";
+        echo "Novo arquivo criado com o nome: $fileName em: $xlsx\n";
     }
     
 

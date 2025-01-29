@@ -70,6 +70,7 @@ class FunctionsML {
             } 
             else if($pages > $totalPages) {
                 echo "numero de paginas: $pages maior que o total disponivel, efetuando buscas ate a pagina: $totalPages" . "\n";
+                $pages = $totalPages;
             }
 
         }
@@ -165,7 +166,7 @@ class FunctionsML {
         $pageNumber = 0;
         $productFails = 0;
         $productNumber = 0;
-        $headers = ['Nome do Produto', 'Preço'];
+        $headers = ['Nome do Produto', 'Preço (R$)'];
 
         if ($productsFile) {
             fputcsv($productsFile, $headers);
@@ -184,7 +185,7 @@ class FunctionsML {
                         $line = [
                             // 'Id' => $code,
                             'Produto' => $name,
-                            'Preco' => "R$ " . $filtered_price,
+                            'Preco' => $filtered_price,
                             // 'Quantidade' => $quantity
                         ];
                         fputcsv($productsFile, $line, ',', '"');

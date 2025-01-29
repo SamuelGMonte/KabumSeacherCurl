@@ -173,7 +173,7 @@ class Functions {
         $pageNumber = 0;
         $productFails = 0;
         $productNumber = 0;
-        $headers = ['ID do produto', 'Nome do Produto', 'Preço', 'Disponiveis'];
+        $headers = ['ID do produto', 'Nome do Produto', 'Preço (R$)', 'Disponiveis'];
 
         if ($productsFile) {
             fputcsv($productsFile, $headers);
@@ -192,7 +192,7 @@ class Functions {
                         $line = [
                             'Id' => $code,
                             'Produto' => $name,
-                            'Preco' => "R$ " . $filtered_price,
+                            'Preco' => $filtered_price,
                             'Quantidade' => $quantity
                         ];
                         fputcsv($productsFile, $line, ',', '"');

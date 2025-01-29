@@ -43,7 +43,34 @@ class UtilML {
 
     public static function optimize_json_ml($json_string) {
         $json_obj = json_decode($json_string, true);
-        return $json_obj['pageState']['initialState'];
+        $optimized_json_obj = $json_obj['pageState']['initialState'];
+        $optimized_json_array = [];
+
+        if (isset($optimized_json_obj['pagination'])) {
+            $optimized_json_array['pagination'] = $optimized_json_obj['pagination'];
+        }
+        
+        if (isset($optimized_json_obj['results'])) {
+            $results = $optimized_json_obj['results'];
+    
+            if (isset($results['polycard']['metadata'])) {
+                unset($results['polycard']['metadata']);
+            }
+            if (isset($results['polycard']['pictures'])) {
+                unset($results['polycard']['pictures']);
+            }
+            if (isset($results['polycard']['bookmark'])) {
+                unset($results['polycard']['bookmark']);
+            }
+            if (isset($results['polycard']['components']['variations'])) {
+                unset($results['polycard']['components']['variations']);
+            }
+    
+            $optimized_json_array['results'] = $results;
+        }
+
+
+        return $optimized_json_array;
     }
 
 

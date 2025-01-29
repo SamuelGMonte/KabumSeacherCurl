@@ -49,6 +49,8 @@ class Csv2Excel {
         }
         
         $spreadsheet = $reader->load($csvFile); 
+        $spreadsheet->getActiveSheet()->setAutoFilter('A1:B1');
+        
         $writer = new Xlsx($spreadsheet);
         $writer->save($xlsx); 
 

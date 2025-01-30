@@ -12,7 +12,7 @@ class Util {
     public static function get_json_content_kabum($ch) {
         
         if (empty($ch)) {
-            echo "Received empty content.<br>";
+            json_encode(["error" => "true", "message" => "Empty content"]);
             return null; 
         }
 
@@ -35,7 +35,7 @@ class Util {
                 }
             }
         } else {
-            echo "Key 'data' does not exist.<br>";
+            json_encode(["status" => "error", "message" => "Key 'data' does not exist.<br>"]);
         }
         return $json;
     }
@@ -46,7 +46,7 @@ class Util {
         $data = $json['props']['pageProps']['data']['catalogServer']['data'];
         
         if (empty($data)) {
-            die(json_encode(["error" => "true", "message" => "pagina nao existe"]) . "\n");
+            die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
         }
         
         $product_names = [];

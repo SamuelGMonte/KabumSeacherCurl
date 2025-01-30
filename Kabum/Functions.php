@@ -6,7 +6,7 @@ class Functions {
     private $agent = 'Mozilla/5.0 (Windows NT 6.2; WOW64; rv:17.0) Gecko/20100101 Firefox/17.0';
 
     public $multiCurl;
-    public $json_response;
+    public $json_response = [];
 
     public function __construct() {
         $this->multiCurl = curl_multi_init();
@@ -76,13 +76,14 @@ class Functions {
             $totalPages = $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'];
             file_put_contents("not-json.json", json_encode($json_obj));
             if($totalPages == null) {
-                die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])) . "\n"; 
+                die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])); 
             }
             else if($pages < 0) {
-                die(json_encode(["status" => "error", "message" => "Pagina inexistente"])) . "\n";
+                die(json_encode(["status" => "error", "message" => "Pagina inexistente"]));
             } 
             else if($pages > $totalPages) {
-                echo "numero de paginas: $pages maior que o total disponivel, efetuando buscas ate a pagina: $totalPages" . "\n";
+                $this->json_response = json_encode(["status" => "error", "message" => "numero de paginas: $pages maior que o total disponivel, efetuando buscas ate a pagina: $totalPages"]);
+                $pages = $totalPages;
             }
         }
 
@@ -126,7 +127,7 @@ class Functions {
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
             if ($http_code == 404) {
-                echo json_encode(["error" => "true", "message" => "status 404"]);
+                $this->json_response = json_encode(["error" => "true", "message" => "status 404"]);
                 continue;
             } else if ($http_code == 200 && !empty($response)) {
                 $mainElem = Util::get_json_content_kabum($response);
@@ -139,7 +140,7 @@ class Functions {
                 $all_product_details[] = $product_details;
             } 
             else {
-                echo json_encode(["error" => "true", "message" => "erro desconhecido index: $index"]) . "\n";
+                $this->json_response = json_encode(["error" => "true", "message" => "erro desconhecido index: $index"]);
                 continue;
             }
     
@@ -159,10 +160,10 @@ class Functions {
             $fileHandle = fopen($filePath, 'w');
             if ($fileHandle) {
                 fclose($fileHandle);
-                $this->json_response =  json_encode(["status" => "success", "message" => "Arquivo criado com sucesso em: $filePath"]) . "\n";
+                $this->json_response = json_encode(["status" => "success", "message" => "Arquivo criado com sucesso em: $filePath"]);
             } 
             else {
-                die(json_encode(["status" => "error", "message" => "Erro ao criar o arquivo em: $filePath"]) . "\n");
+                die(json_encode(["status" => "error", "message" => "Erro ao criar o arquivo em: $filePath"]));
             }
         }
 
@@ -176,7 +177,7 @@ class Functions {
         $headers = ['ID do produto', 'Nome do Produto', 'Preço (R$)', 'Disponiveis'];
 
         if ($productsFile) {
-            fputcsv($productsFile, $headers);
+            fputcsv($productsFile, $headers, ',', '"', '\\');
             foreach ($all_product_details as $details) {
                 $pageNumber++;
                 foreach ($details['product_names'] as $index => $name) {
@@ -195,24 +196,24 @@ class Functions {
                             'Preco' => $filtered_price,
                             'Quantidade' => $quantity
                         ];
-                        fputcsv($productsFile, $line, ',', '"');
+                        fputcsv($productsFile, $line, ',', '"', '\\');
                     } else {
                         $productFails++;
                     }
                 }
                 if($productFails == $productNumber) {
-                    echo "Nenhum produto com o valor especificado encontrado na pagina " . $pageNumber . PHP_EOL;
+                    $this->json_response = json_encode(["status" => "error", "message" => "Nenhum produto com o valor especificado encontrado na pagina " . $pageNumber]);
                 }
             }
 
             if($productFails == $productNumber) {
-                die(json_encode(["status" => "error", "message" => "Nenhum produto encontrado, arquivo nao sera salvo."]) . "\n");
+                die(json_encode(["status" => "error", "message" => "Nenhum produto encontrado, arquivo nao sera salvo."]));
             }
             
             fclose($productsFile);
-            $this->json_response = json_encode(["status" => "success", "message" => "Produtos salvos no arquivo produtos.csv"]) . "\n";
+            $this->json_response = json_encode(["status" => "success", "message" => "Produtos salvos no arquivo produtos.csv"]);
         } else {
-            $this->json_response = json_encode(["status" => "error", "message" => "Erro ao abrir o arquivo para escrita"]) . "\n";
+            $this->json_response = json_encode(["status" => "error", "message" => "Erro ao abrir o arquivo para escrita"]);
         }
         
         return $this->json_response;

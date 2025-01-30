@@ -13,7 +13,7 @@ class UtilML {
         $output = "";
 
         if (empty($ch)) {
-            echo "Received empty content.<br>";
+            json_encode(["error" => "true", "message" => "Empty content"]);
             return null; 
         }
 
@@ -34,7 +34,7 @@ class UtilML {
 
         }
         else {
-            echo "JSON nao encontrado." . PHP_EOL;
+            json_encode(["error" => "true", "message" => "JSON nao encontrado"]);
         }
 
         return $json;
@@ -79,7 +79,7 @@ class UtilML {
         $data = $json['results'];
         
         if (empty($data)) {
-            die(json_encode(["error" => "true", "message" => "pagina nao existe"]) . "\n");
+            die(json_encode(["status" => "error", "message" => "pagina nao existe"]));
         }
         
         $product_names = [];

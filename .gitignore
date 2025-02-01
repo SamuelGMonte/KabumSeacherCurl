@@ -10,3 +10,5 @@ out
 
 
 !composer.json
+!scrapper-electron/package-lock.json
+!scrapper-electron/package.json

@@ -1,6 +1,8 @@
 <?php
 require_once 'Util.php';
 
+ini_set("memory_limit", "512M");
+
 header('Content-type: text/html; charset=UTF-8');
 class Functions {
     private $agent = 'Mozilla/5.0 (Windows NT 6.2; WOW64; rv:17.0) Gecko/20100101 Firefox/17.0';
@@ -176,6 +178,7 @@ class Functions {
         $productNumber = 0;
         $headers = ['ID do produto', 'Nome do Produto', 'Preço (R$)', 'Disponiveis'];
 
+        $uniqueEntries = array();
         if ($productsFile) {
             fputcsv($productsFile, $headers, ',', '"', '\\');
             foreach ($all_product_details as $details) {
@@ -190,13 +193,16 @@ class Functions {
                     $haystackLc = str_replace(' ', '', strtolower($name));
                     $productLc = str_replace(' ', '', strtolower($productName));
                     if ($filtered_price !== null && str_contains($haystackLc, $productLc)) {
-                        $line = [
-                            'Id' => $code,
-                            'Produto' => $name,
-                            'Preco' => $filtered_price,
-                            'Quantidade' => $quantity
-                        ];
-                        fputcsv($productsFile, $line, ',', '"', '\\');
+                        if(!in_array($name, $uniqueEntries)) {
+                            $line = [
+                                'Id' => $code,
+                                'Produto' => $name,
+                                'Preco' => $filtered_price,
+                                'Quantidade' => $quantity
+                            ];
+                            fputcsv($productsFile, $line, ',', '"', '\\');
+
+                        }
                     } else {
                         $productFails++;
                     }

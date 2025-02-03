@@ -59,9 +59,10 @@ class FunctionsML {
         curl_close($ch);
 
         if($response) {
-            $json_str = UtilML::get_json_content_ml($response);
-            $json_obj = json_decode($json_str, true); 
-            $totalPages = $json_obj['pagination']['page_count'];
+            $json_string = UtilML::get_json_content_ml($response);
+            $json_obj = json_decode($json_string, true);
+
+            $totalPages = $json_obj['pageState']['initialState']['pagination']['page_count'];
             if($totalPages == null) {
                 die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])) ; 
             }
@@ -69,51 +70,58 @@ class FunctionsML {
                 die(json_encode(["status" => "error", "message" => "Pagina inexistente"])) ;
             } 
             else if($pages > $totalPages) {
-                $this->json_response = json_encode(["status" => "success", "message" => "numero de paginas: $pages maior que o total disponivel, efetuando buscas ate a pagina: $totalPages" ]);
+                echo json_encode(["status" => "success", "message" => "numero de paginas: $pages maior que o total disponivel, efetuando buscas ate a pagina: $totalPages" ]);
                 $pages = $totalPages;
             }
 
         }
 
+            $next_page = $json_obj['pageState']['initialState']['pagination']['next_page']['url'];
 
-        for ($i = 1; $i <= $pages; $i++) {
-            $pagination_nodes[] = $json_obj['pagination']['next_page'];
-        }
-        
-        foreach($pagination_nodes as $node => $nodeVal) {
-            $url_values[$node] = json_decode('"' . $nodeVal['url'] . '"');
-            
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url_values[$node]);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Accept: */*',
-                'Accept-Language: en-US,en;q=0.9',
-                'Connection: keep-alive',
-                'sec-ch-ua: "Google Chrome";v="117"',
-                'sec-ch-ua-mobile: ?0',
-                'sec-ch-ua-platform: "Windows"',
-                'Sec-Fetch-Dest: empty',
-                'Sec-Fetch-Mode: cors',
-                'Sec-Fetch-Site: same-origin',
-            ]);
-            curl_setopt($ch, CURLOPT_COOKIEFILE, '');
-            curl_setopt($ch, CURLOPT_COOKIEJAR, '');
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-            curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
-            
-            curl_multi_add_handle($this->multiCurl, $ch);
-            $curl_handles[] = $ch;
-            
-        }
+            for($i = 1; $i <= $pages; $i++) {
+                if($next_page) {
+                    $ch = curl_init();
+                    
+                    
+                    curl_setopt($ch, CURLOPT_URL, $next_page);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                        'Accept: */*',
+                        'Accept-Language: en-US,en;q=0.9',
+                        'Connection: keep-alive',
+                        'sec-ch-ua: "Google Chrome";v="117"',
+                        'sec-ch-ua-mobile: ?0',
+                        'sec-ch-ua-platform: "Windows"',
+                        'Sec-Fetch-Dest: empty',
+                        'Sec-Fetch-Mode: cors',
+                        'Sec-Fetch-Site: same-origin',
+                    ]);
+                    curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+                    curl_setopt($ch, CURLOPT_COOKIEJAR, '');
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+                    curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+                    
+                    $response_url = curl_exec($ch);
+                    $mainElem = UtilML::get_json_content_ml($response_url);
+                    $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
+                    $json_data = json_decode($mainElem, true);
+
+                    curl_close($ch);
+
+                    $curl_handles[] = $ch;
+                
+                    $next_page = $json_data['pageState']['initialState']['pagination']['next_page']['url'];
+
+                }
+            }
+
 
         $running = null;
         do {
             curl_multi_exec($this->multiCurl, $running);
         } while ($running);
 
-        $filtered_jsons = [];
         $all_product_details = [];
         
         foreach ($curl_handles as $index => $ch) {
@@ -124,8 +132,9 @@ class FunctionsML {
                 $this->json_response = json_encode(["error" => "true", "message" => "status 404"]);
                 continue;
             } else if ($http_code == 200 && !empty($response)) {
-                $json_obj = UtilML::get_json_content_ml($response);
-                $filtered_jsons[] = $json_obj;
+                $mainElem = UtilML::get_json_content_ml($response);
+                $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
+                $json_obj = json_decode($mainElem, true);
                 $product_details = UtilML::get_products_details_ml($json_obj);
                 $all_product_details[] = $product_details;
             } 
@@ -157,48 +166,53 @@ class FunctionsML {
             }
         }
 
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $lines = array_unique($lines);
         $productsFile = fopen($filePath, 'w');
 
+        
         $pageNumber = 0;
         $productFails = 0;
         $productNumber = 0;
         $headers = ['Nome do Produto', 'Preço (R$)'];
 
+        
+        $uniqueEntries = array();
         if ($productsFile) {
             fputcsv($productsFile, $headers, ',', '"', '\\');
             foreach ($all_product_details as $details) {
                 $pageNumber++;
+
+                
                 foreach ($details['product_names'] as $index => $name) {
                     $productNumber++;
                     // $code = $details['product_codes'][$name] ?? null;
                     $price = $details['prices'][$index] ?? null;
                     $filtered_price = UtilML::filter_price($price, $max_price, $min_price);
                     // $quantity = $details['quantity'];
-
                     $haystackLc = str_replace(' ', '', strtolower($name));
                     $productLc = str_replace(' ', '', strtolower($productName));
                     if ($filtered_price !== null && str_contains($haystackLc, $productLc)) {
-                        $line = [
-                            // 'Id' => $code,
-                            'Produto' => $name,
-                            'Preco' => $filtered_price,
-                            // 'Quantidade' => $quantity
-                        ];
-                        fputcsv($productsFile, $line, ',', '"', '\\');
+                        if(!in_array($name, $uniqueEntries)) {
+                            $uniqueEntries[] = $name;
+                        
+                            $line = [
+                                // 'Id' => $code,
+                                'Produto' => $name,
+                                'Preco' => $filtered_price,
+                                // 'Quantidade' => $quantity
+                            ];
+                            fputcsv($productsFile, $line, ',', '"', '\\');
+                        }
                     } else {
                         $productFails++;
                     }
                 }
+
                 if($productFails == $productNumber) {
                     $this->json_response = json_encode(["status" => "error", "message" => "Nenhum produto com o valor especificado encontrado na pagina " . $pageNumber]);
                 }
             }
 
-            if($productFails == $productNumber) {
-                die(json_encode(["status" => "error", "message" => "Nenhum produto encontrado, arquivo nao sera salvo."]));
-            }
+           
             
             fclose($productsFile);
             $this->json_response = json_encode(["status" => "success", "message" => "Produtos salvos no arquivo produtos.csv"]) ;
@@ -206,6 +220,7 @@ class FunctionsML {
             $this->json_response = json_encode(["status" => "error", "message" => "Erro ao abrir o arquivo para escrita"]) ;
         }
         
+
         return $this->json_response;
     }
         

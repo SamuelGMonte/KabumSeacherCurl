@@ -25,60 +25,86 @@ class UtilML {
 
         if($mainElem->length > 0) {
             $output = $mainElem->item(0)->nodeValue;
-
-            $optimizedData = self::optimize_json_ml($output);
-
-            $json = json_encode($optimizedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE); 
-
-            file_put_contents("overflow2.json", $json);
-
+            $json_string = json_encode($output);
+            // $optimizedJson = self::optimize_json_ml($output);
         }
         else {
             json_encode(["error" => "true", "message" => "JSON nao encontrado"]);
         }
-
-        return $json;
+        return $output;
     }
 
 
-    public static function optimize_json_ml($json_string) {
-        $json_obj = json_decode($json_string, true);
-        $optimized_json_obj = $json_obj['pageState']['initialState'];
-        $optimized_json_array = [];
-
-        if (isset($optimized_json_obj['pagination'])) {
-            $optimized_json_array['pagination'] = $optimized_json_obj['pagination'];
-        }
-        
-        if (isset($optimized_json_obj['results'])) {
-            $results = $optimized_json_obj['results'];
+    // public static function optimize_json_ml($json_string) {
+    //     $json_obj = json_decode($json_string, true);
+    //     $optimized_json_array = [];
+    //     if (isset($json_obj['pageState']['initialState']['results'])) {
+    //         $optimized_json_array['pageState']['initialState']['results'] = $json_obj['pageState']['initialState']['results'];
+    //     }
     
-            if (isset($results['polycard']['metadata'])) {
-                unset($results['polycard']['metadata']);
-            }
-            if (isset($results['polycard']['pictures'])) {
-                unset($results['polycard']['pictures']);
-            }
-            if (isset($results['polycard']['bookmark'])) {
-                unset($results['polycard']['bookmark']);
-            }
-            if (isset($results['polycard']['components']['variations'])) {
-                unset($results['polycard']['components']['variations']);
+    //     if (isset($json_obj['pageStoreState']['locationSearch']['initialState']['results'])) {
+    //         $optimized_json_array['pageStoreState']['locationSearch']['initialState']['results'] = $json_obj['pageStoreState']['locationSearch']['initialState']['results'];
+    //     }
+    
+    //     if (isset($json_obj['pageStoreState']['locationSearch']['initialState']['pagination']['page_count'])) {
+    //         $optimized_json_array['pageStoreState']['locationSearch']['initialState']['pagination']['page_count'] = $json_obj['pageStoreState']['locationSearch']['initialState']['pagination']['page_count'];
+    //     }
+    
+    //     if (isset($json_obj['pageState']['initialState']['pagination']['next_page'])) {
+    //         $optimized_json_array['pageState']['initialState']['pagination']['next_page'] = $json_obj['pageState']['initialState']['pagination']['next_page'];
+    //     }
+
+    //     if (isset($json_obj['pageState']['initialState']['results']['polycard']['components'])) {
+    //         $optimized_json_array['pageState']['initialState']['results']['polycard']['components'] = $json_obj['pageState']['initialState']['results']['polycard']['components'];
+    //     }
+
+    //     if (isset($json_obj['pageStoreState']['locationSearch']['initialState']['results']['polycard']['components'])) {
+    //         $optimized_json_array['pageStoreState']['locationSearch']['initialState']['results']['polycard']['components'] = $json_obj['pageStoreState']['locationSearch']['initialState']['results']['polycard']['components'];
+    //     }
+
+    //     return json_encode($optimized_json_array);
+    // }
+    
+
+    public static function searchForKeyValuePair($array, $targetKey, $targetValue = null) {
+        $result = []; 
+    
+        foreach ($array as $key => $value) {
+            if ($targetValue === null) {
+                if ($key === $targetKey) {
+                    $result[] = $value; 
+                }
+            } else {
+                if ($key === $targetKey && $value === $targetValue) {
+                    return $value; 
+                }
             }
     
-            $optimized_json_array['results'] = $results;
+            if (is_array($value) || is_object($value)) {
+                $recursiveResult = self::searchForKeyValuePair((array)$value, $targetKey, $targetValue);
+                if ($recursiveResult !== null) {
+                    if ($targetValue === null) {
+                        $result = array_merge($result, (array)$recursiveResult);
+                    } else {
+                        return $recursiveResult;
+                    }
+                }
+            }
         }
-
-
-        return $optimized_json_array;
+    
+        return $targetValue === null ? $result : null;
     }
 
+    
 
-   public static function get_products_details_ml($json_string) {
-        $json = json_decode($json_string, true);
-        $data = $json['results'];
+    public static function get_products_details_ml($json) {
         
-        if (empty($data)) {
+        $locationSearchInitialState = $json['pageStoreState']['locationSearch']['initialState']['results'];
+        $pageStateInitialState = $json['pageState']['initialState'];
+
+        $filtered_json = array_merge($locationSearchInitialState, $pageStateInitialState);
+
+        if (empty($filtered_json)) {
             die(json_encode(["status" => "error", "message" => "pagina nao existe"]));
         }
         
@@ -86,30 +112,41 @@ class UtilML {
         $product_codes = [];
         $prices = [];
         // $quantity = [];
+        file_put_contents("teste2.json", json_encode($filtered_json));
+
+           
+        $targetKey = "price";
+        $result_price[] = self::searchForKeyValuePair($filtered_json, $targetKey);
+
+        foreach ($result_price as $res_key_price => $res_price) {
+            $current_price = self::searchForKeyValuePair($res_price, "current_price");
         
-        if (isset($data)) {
-            foreach($data as $dt) {
-                if(isset($dt['polycard'])) {
-                    $usable_path = $dt['polycard']['components'];
-                    foreach($usable_path as $formated) {
-                        if (isset($formated['type']) && $formated['type'] === 'price') {
-                            $prices[] = $formated['price']['current_price']['value'] ?? null; 
-                        } else if($formated['type'] === 'title') {
-                            $product_names[] = $formated['title']['text'];
-                        }
+            if (is_array($current_price)) {
+                foreach ($current_price as $nested_array) {
+                    if (isset($nested_array['value'])) {
+                        $prices[] = $nested_array['value'];
                     }
-
                 }
-
-                // if (isset($usable_path['title'], $usable_path['price']['current_price']['value'])) {
-                //     $product_names[] = $usable_path['title']['text'];  
-                //     $product_codes[$usable_path['title']['text']] =  $dt['polycard']['metadata']['product_id']; 
-                //     $prices[] = $usable_path['price']['current_price']['value'];
-                //     // $quantity = $dt['quantity'];
-                // } 
             }
         }
-        
+
+
+        $targetKey = "title";
+        $name_result[] = self::searchForKeyValuePair($filtered_json, $targetKey);
+
+        foreach ($name_result as $name_key => $name) {
+            if (is_array($name)) {
+                foreach($name as $nm) {
+                    if (isset($nm['text'])) {
+                        $product_names[] = $nm['text'];
+                    }
+                    
+                }
+            }
+            // $product_names = $name[$name_key]['text'];
+        }
+
+        // var_dump($product_names);
 
         return [
             'product_names' => $product_names,

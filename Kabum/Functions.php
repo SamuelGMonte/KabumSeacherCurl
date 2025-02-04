@@ -8,38 +8,63 @@ class Functions {
     private $agent = 'Mozilla/5.0 (Windows NT 6.2; WOW64; rv:17.0) Gecko/20100101 Firefox/17.0';
 
     public $multiCurl;
+    public $is_formatted = true;
     public $json_response = [];
+    public $headers = [
+        'Accept: */*',
+        'Accept-Language: en-US,en;q=0.9',
+        'Connection: keep-alive',
+        'sec-ch-ua: "Google Chrome";v="117"',
+        'sec-ch-ua-mobile: ?0',
+        'sec-ch-ua-platform: "Windows"',
+        'Sec-Fetch-Dest: empty',
+        'Sec-Fetch-Mode: cors',
+        'Sec-Fetch-Site: same-origin',
+    ];
 
     public function __construct() {
         $this->multiCurl = curl_multi_init();
         Util::initialize();
     }
 
-    public function get_user_content($url) {
-        $ch1 = curl_init();
+    public function formatted_pages($json_obj) {
+        if(is_string($json_obj['props']['pageProps']['data'])) {
+            $json_obj = json_decode($json_obj['props']['pageProps']['data'], true);
+            $totalPages = $json_obj['catalogServer']['meta']['totalPagesCount'];
+            $this->is_formatted = false;
+        } else {
+            $totalPages = $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'];
+        }
 
-        curl_setopt($ch1, CURLOPT_URL, $url);
-        curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch1, CURLOPT_FOLLOWLOCATION, false);
-        curl_setopt($ch1, CURLOPT_USERAGENT, $this->agent);
-
-        curl_multi_add_handle($this->multiCurl, $ch1);
-
-        return $ch1;
+        return $totalPages;
     }
 
-    public function get_user_page($url) {
-        $ch2 = curl_init();
-
-        curl_setopt($ch2, CURLOPT_URL, $url);
-        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, false);
-        curl_setopt($ch2, CURLOPT_USERAGENT, $this->agent);
-
-        curl_multi_add_handle($this->multiCurl, $ch2);
-
-        return $ch2;
+    public function init_curl_request($url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+        curl_setopt($ch, CURLOPT_COOKIEJAR, '');
+        return $ch;
     }
+    
+
+    // public function get_user_page($url) {
+    //     $ch2 = curl_init();
+
+    //     curl_setopt($ch2, CURLOPT_URL, $url);
+    //     curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+    //     curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, false);
+    //     curl_setopt($ch2, CURLOPT_USERAGENT, $this->agent);
+
+    //     curl_multi_add_handle($this->multiCurl, $ch2);
+
+    //     return $ch2;
+    // }
 
     public function __destruct() {
         curl_multi_close($this->multiCurl);
@@ -51,32 +76,25 @@ class Functions {
         
         $url = $url . str_replace("+", "-", urlencode($productName));
         
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: */*',
-            'Accept-Language: en-US,en;q=0.9',
-            'Connection: keep-alive',
-            'sec-ch-ua: "Google Chrome";v="117"',
-            'sec-ch-ua-mobile: ?0',
-            'sec-ch-ua-platform: "Windows"',
-            'Sec-Fetch-Dest: empty',
-            'Sec-Fetch-Mode: cors',
-            'Sec-Fetch-Site: same-origin',
-        ]);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
-        curl_setopt($ch, CURLOPT_COOKIEJAR, '');
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+        $ch = $this->init_curl_request($url);
 
+        
         $response = curl_exec($ch);
+        $info = curl_getinfo($ch);
+
+        if ($info['url'] !== $url) {
+            // REFAZ A REQUISICAO COM $INFO['URL']
+            $ch = $this->init_curl_request($info['url']);
+            $response = curl_exec($ch);
+        }
+
         curl_close($ch);
         
         if ($response) {
             $mainElem = Util::get_json_content_kabum($response);
             $json_obj = json_decode(preg_replace('/<[^>]*>/', '', $mainElem), true);
-            $totalPages = isset($json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount']) ? $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'] : die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"]));
-            if($pages < 0) {
+            $totalPages = $this->formatted_pages($json_obj);
+            if($pages <= 0) {
                 die(json_encode(["status" => "error", "message" => "Pagina inexistente"]));
             } 
             else if($pages > $totalPages) {
@@ -103,7 +121,7 @@ class Functions {
             curl_setopt($ch, CURLOPT_COOKIEFILE, '');
             curl_setopt($ch, CURLOPT_COOKIEJAR, '');
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
             
             curl_multi_add_handle($this->multiCurl, $ch);
@@ -131,10 +149,10 @@ class Functions {
                 $mainElem = Util::get_json_content_kabum($response);
                 $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
                 $json_obj = json_decode($mainElem, true);
-                $json_obj_filtered = Util::filter_json($json_obj);
+                $json_obj_filtered = Util::filter_json($json_obj, $this->is_formatted);
                 $filtered_jsons[] = $json_obj_filtered;
     
-                $product_details = Util::get_products_details($json_obj_filtered);
+                $product_details = Util::get_products_details($json_obj_filtered, $this->is_formatted);
                 $all_product_details[] = $product_details;
             } 
             else {

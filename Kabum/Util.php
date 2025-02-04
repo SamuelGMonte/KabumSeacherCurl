@@ -25,44 +25,82 @@ class Util {
         return $output;
     }
 
-    public static function filter_json($json) {
-        
-
-        if (isset($json['props']['pageProps']['data'])) {
-            foreach ($json['props']['pageProps']['data'] as $subKey => $subValue) {
-                if ($subKey == 'cookieIsMobile' || $subKey == 'categories') {
-                    unset($json['props']['pageProps']['data'][$subKey]);
+    public static function filter_json($json, $is_formatted) {
+        if($is_formatted) {
+            if (isset($json['props']['pageProps']['data'])) {
+                foreach ($json['props']['pageProps']['data'] as $subKey => $subValue) {
+                    if ($subKey == 'cookieIsMobile' || $subKey == 'categories') {
+                        unset($json['props']['pageProps']['data'][$subKey]);
+                    }
                 }
+            } else {
+                json_encode(["status" => "error", "message" => "Key 'data' does not exist.<br>"]);
             }
         } else {
-            json_encode(["status" => "error", "message" => "Key 'data' does not exist.<br>"]);
+            $json = json_decode($json['props']['pageProps']['data'], true);
+            if (isset($json)) {
+                foreach ($json as $subKey => $subValue) {
+                    if ($subKey == 'cookieIsMobile' || $subKey == 'categories') {
+                        unset($json[$subKey]);
+                    }
+                }
+            } else {
+                json_encode(["status" => "error", "message" => "Key 'data' does not exist.<br>"]);
+            }
         }
+
         return $json;
     }
 
 
 
-   public static function get_products_details($json) {
-        $data = $json['props']['pageProps']['data']['catalogServer']['data'];
+   public static function get_products_details($json, $is_formatted) {
+        if($is_formatted) {
+            $data = $json['props']['pageProps']['data']['catalogServer']['data'];
+            
+            if (empty($data)) {
+                die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
+            }
+            
+            $product_names = [];
+            $product_codes = [];
+            $prices = [];
+            $quantity = [];
+            
         
-        if (empty($data)) {
-            die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
-        }
+            if (isset($data)) {
+                foreach($data as $dt) {
+                    if (isset($dt['name'], $dt['code'], $dt['price'])) {
+                        $product_names[] = $dt['name'];  
+                        $product_codes[$dt['name']] = $dt['code']; 
+                        $prices[] = $dt['price'];
+                        $quantity = $dt['quantity'];
+                    } 
+                }
+            }
+        } 
+        else {
+            $data = $json['catalogServer']['data'];
+
+            if (empty($data)) {
+                die(json_encode(["error" => "true", "message" => "pagina nao existe"]));
+            }
+            
+            $product_names = [];
+            $product_codes = [];
+            $prices = [];
+            $quantity = [];
+            
         
-        $product_names = [];
-        $product_codes = [];
-        $prices = [];
-        $quantity = [];
-        
-    
-        if (isset($data)) {
-            foreach($data as $dt) {
-                if (isset($dt['name'], $dt['code'], $dt['price'])) {
-                    $product_names[] = $dt['name'];  
-                    $product_codes[$dt['name']] = $dt['code']; 
-                    $prices[] = $dt['price'];
-                    $quantity = $dt['quantity'];
-                } 
+            if (isset($data)) {
+                foreach($data as $dt) {
+                    if (isset($dt['name'], $dt['code'], $dt['price'])) {
+                        $product_names[] = $dt['name'];  
+                        $product_codes[$dt['name']] = $dt['code']; 
+                        $prices[] = $dt['price'];
+                        $quantity = $dt['quantity'];
+                    } 
+                }
             }
         }
         

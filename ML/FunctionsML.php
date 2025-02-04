@@ -10,6 +10,17 @@ class FunctionsML {
 
     public $multiCurl;
     public $json_response = [];
+    public $headers = [
+        'Accept: */*',
+        'Accept-Language: en-US,en;q=0.9',
+        'Connection: keep-alive',
+        'sec-ch-ua: "Google Chrome";v="117"',
+        'sec-ch-ua-mobile: ?0',
+        'sec-ch-ua-platform: "Windows"',
+        'Sec-Fetch-Dest: empty',
+        'Sec-Fetch-Mode: cors',
+        'Sec-Fetch-Site: same-origin',
+    ];
 
     public function __construct() {
         $this->multiCurl = curl_multi_init();
@@ -29,6 +40,19 @@ class FunctionsML {
         return $ch1;
     }
 
+    public function init_curl_request($url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+        curl_setopt($ch, CURLOPT_COOKIEJAR, '');
+        return $ch;
+    }
+
     public function __destruct() {
         curl_multi_close($this->multiCurl);
     }
@@ -39,25 +63,18 @@ class FunctionsML {
         
         $url = $url . str_replace("+", "-", urlencode($productName));
 
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: */*',
-            'Accept-Language: en-US,en;q=0.9',
-            'Connection: keep-alive',
-            'sec-ch-ua: "Google Chrome";v="117"',
-            'sec-ch-ua-mobile: ?0',
-            'sec-ch-ua-platform: "Windows"',
-            'Sec-Fetch-Dest: empty',
-            'Sec-Fetch-Mode: cors',
-            'Sec-Fetch-Site: same-origin',
-        ]);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
-        curl_setopt($ch, CURLOPT_COOKIEJAR, '');
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+        $ch = $this->init_curl_request($url);
+
 
         $response = curl_exec($ch);
+        $info = curl_getinfo($ch);
+
+        if ($info['url'] !== $url) {
+            // REFAZ A REQUISICAO COM $INFO['URL']
+            $ch = $this->init_curl_request($info['url']);
+            $response = curl_exec($ch);
+        }
+
         curl_close($ch);
 
         if($response) {
@@ -75,44 +92,43 @@ class FunctionsML {
 
         }
 
-            $next_page = $json_obj['pageState']['initialState']['pagination']['next_page']['url'];
+        $next_page = $json_obj['pageState']['initialState']['pagination']['next_page']['url'];
 
-            for($i = 1; $i <= $pages; $i++) {
-                if($next_page) {
-                    $ch = curl_init();
-                    
-                    curl_setopt($ch, CURLOPT_URL, $next_page);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                        'Accept: */*',
-                        'Accept-Language: en-US,en;q=0.9',
-                        'Connection: keep-alive',
-                        'sec-ch-ua: "Google Chrome";v="117"',
-                        'sec-ch-ua-mobile: ?0',
-                        'sec-ch-ua-platform: "Windows"',
-                        'Sec-Fetch-Dest: empty',
-                        'Sec-Fetch-Mode: cors',
-                        'Sec-Fetch-Site: same-origin',
-                    ]);
-                    curl_setopt($ch, CURLOPT_COOKIEFILE, '');
-                    curl_setopt($ch, CURLOPT_COOKIEJAR, '');
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-                    curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
-                    
-                    $response_url = curl_exec($ch);
-                    $mainElem = UtilML::get_json_content_ml($response_url);
-                    $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
-                    $json_data = json_decode($mainElem, true);
-
-                    curl_close($ch);
-
-                    $curl_handles[] = $ch;
+        for($i = 1; $i <= $pages; $i++) {
+            if(isset($next_page)) {
+                $ch = curl_init();
                 
-                    $next_page = $json_data['pageState']['initialState']['pagination']['next_page']['url'];
+                curl_setopt($ch, CURLOPT_URL, $next_page);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Accept: */*',
+                    'Accept-Language: en-US,en;q=0.9',
+                    'Connection: keep-alive',
+                    'sec-ch-ua: "Google Chrome";v="117"',
+                    'sec-ch-ua-mobile: ?0',
+                    'sec-ch-ua-platform: "Windows"',
+                    'Sec-Fetch-Dest: empty',
+                    'Sec-Fetch-Mode: cors',
+                    'Sec-Fetch-Site: same-origin',
+                ]);
+                curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+                curl_setopt($ch, CURLOPT_COOKIEJAR, '');
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+                curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+                
+                $response_url = curl_exec($ch);
+                $mainElem = UtilML::get_json_content_ml($response_url);
+                $mainElem = preg_replace('/<[^>]*>/', '', $mainElem);
+                $json_data = json_decode($mainElem, true);
 
-                }
+                curl_close($ch);
+
+                $curl_handles[] = $ch;
+            
+                $next_page = $json_data['pageState']['initialState']['pagination']['next_page']['url'];
             }
+        }
 
 
         $running = null;

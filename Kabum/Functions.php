@@ -75,12 +75,8 @@ class Functions {
         if ($response) {
             $mainElem = Util::get_json_content_kabum($response);
             $json_obj = json_decode(preg_replace('/<[^>]*>/', '', $mainElem), true);
-            $totalPages = $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'];
-            file_put_contents("not-json.json", json_encode($json_obj));
-            if($totalPages == null) {
-                die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])); 
-            }
-            else if($pages < 0) {
+            $totalPages = isset($json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount']) ? $json_obj['props']['pageProps']['data']['catalogServer']['meta']['totalPagesCount'] : die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"]));
+            if($pages < 0) {
                 die(json_encode(["status" => "error", "message" => "Pagina inexistente"]));
             } 
             else if($pages > $totalPages) {

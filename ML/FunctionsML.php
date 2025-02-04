@@ -1,6 +1,8 @@
 <?php
 require_once 'UtilML.php';
 
+ini_set("memory_limit", "512M");
+
 header('Content-type: text/html; charset=UTF-8');
 
 class FunctionsML {
@@ -62,11 +64,8 @@ class FunctionsML {
             $json_string = UtilML::get_json_content_ml($response);
             $json_obj = json_decode($json_string, true);
 
-            $totalPages = $json_obj['pageState']['initialState']['pagination']['page_count'];
-            if($totalPages == null) {
-                die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"])) ; 
-            }
-            else if($pages < 0) {
+            $totalPages = isset($json_obj['pageState']['initialState']['pagination']['page_count']) ? $json_obj['pageState']['initialState']['pagination']['page_count'] : die(json_encode(["status" => "error", "message" => "Produto indisponivel ou fora de estoque"]));
+            if($pages < 0) {
                 die(json_encode(["status" => "error", "message" => "Pagina inexistente"])) ;
             } 
             else if($pages > $totalPages) {
@@ -81,7 +80,6 @@ class FunctionsML {
             for($i = 1; $i <= $pages; $i++) {
                 if($next_page) {
                     $ch = curl_init();
-                    
                     
                     curl_setopt($ch, CURLOPT_URL, $next_page);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -172,7 +170,7 @@ class FunctionsML {
         $pageNumber = 0;
         $productFails = 0;
         $productNumber = 0;
-        $headers = ['Nome do Produto', 'Preço (R$)'];
+        $headers = ['Id', 'Nome do Produto', 'Preço (R$)'];
 
         
         $uniqueEntries = array();
@@ -184,10 +182,9 @@ class FunctionsML {
                 
                 foreach ($details['product_names'] as $index => $name) {
                     $productNumber++;
-                    // $code = $details['product_codes'][$name] ?? null;
+                    $code = $details['product_codes'][$index] ?? null;
                     $price = $details['prices'][$index] ?? null;
                     $filtered_price = UtilML::filter_price($price, $max_price, $min_price);
-                    // $quantity = $details['quantity'];
                     $haystackLc = str_replace(' ', '', strtolower($name));
                     $productLc = str_replace(' ', '', strtolower($productName));
                     if ($filtered_price !== null && str_contains($haystackLc, $productLc)) {
@@ -195,10 +192,9 @@ class FunctionsML {
                             $uniqueEntries[] = $name;
                         
                             $line = [
-                                // 'Id' => $code,
+                                'Id' => $code,
                                 'Produto' => $name,
                                 'Preco' => $filtered_price,
-                                // 'Quantidade' => $quantity
                             ];
                             fputcsv($productsFile, $line, ',', '"', '\\');
                         }

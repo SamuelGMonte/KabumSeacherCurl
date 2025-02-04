@@ -19,10 +19,35 @@ if($option !== "1" && $option !== "2") {
 
 $response = "";
 
-$product_name = readline("Digite o produto a ser buscado: ");
-$pag = (int) readline("Digite a quantidade de paginas a serem buscadas ");
-$max_price = (int) readline("Digite o preco maximo do produto desejado ");
-$min_price = (int) readline("Digite o preco minimo do produto desejado ");
+$product_name = (string) readline("Digite o produto a ser buscado: ");
+while(is_numeric($product_name)) {
+    $product_name = readline("Por favor, insira um nome valido: ");
+}
+while($product_name == null) {
+    $product_name = readline("Produto nao pode ser vazio: ");
+}
+
+$pag = readline("Digite a quantidade de paginas a serem buscadas: ");
+while($pag == null || !is_numeric($pag) || !ctype_digit($pag)) {
+    $pag = readline("Pagina invalida, selecione um numero inteiro novamente: ");
+}
+$pag = (int) $pag;
+
+$max_price = readline("Digite o preco maximo do produto desejado: ");
+while($max_price == null || !ctype_digit($max_price)) {
+    $max_price = readline("Preco maximo nao pode ser vazio: ");
+}
+$max_price = (float) $max_price;
+
+$min_price = (float) readline("Digite o preco minimo do produto desejado, nulo para 0: ");
+while(!is_numeric($min_price)) {
+    $min_price = (int) readline("Por favor, insira uma valor numerico");
+}
+$min_price = (float) $min_price;
+
+while($product_name == null) {
+    $min_price = 0;
+}
 
 $csv2excel = new Csv2Excel();
 

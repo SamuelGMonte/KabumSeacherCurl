@@ -111,48 +111,22 @@ class UtilML {
         $product_names = [];
         $product_codes = [];
         $prices = [];
-        // $quantity = [];
-        file_put_contents("teste2.json", json_encode($filtered_json));
 
            
         $targetKey = "price";
         $result_price[] = self::searchForKeyValuePair($filtered_json, $targetKey);
 
-        foreach ($result_price as $res_key_price => $res_price) {
-            $current_price = self::searchForKeyValuePair($res_price, "current_price");
-        
-            if (is_array($current_price)) {
-                foreach ($current_price as $nested_array) {
-                    if (isset($nested_array['value'])) {
-                        $prices[] = $nested_array['value'];
-                    }
-                }
-            }
+        $product_details = $json['pageStoreState']['locationSearch']['initialState']['seo']['schema']['product_list'];
+        foreach($product_details as $detail_key => $details) {
+            $prices[] = $details['item_offered']['price'];
+            $product_codes[] = $details['id'];
+            $product_names[] = $details['name'];
         }
-
-
-        $targetKey = "title";
-        $name_result[] = self::searchForKeyValuePair($filtered_json, $targetKey);
-
-        foreach ($name_result as $name_key => $name) {
-            if (is_array($name)) {
-                foreach($name as $nm) {
-                    if (isset($nm['text'])) {
-                        $product_names[] = $nm['text'];
-                    }
-                    
-                }
-            }
-            // $product_names = $name[$name_key]['text'];
-        }
-
-        // var_dump($product_names);
 
         return [
             'product_names' => $product_names,
             'product_codes' => $product_codes,
             'prices' => $prices,
-            // 'quantity' => $quantity
         ];
     }
     

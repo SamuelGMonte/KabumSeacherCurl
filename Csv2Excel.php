@@ -49,7 +49,7 @@ class Csv2Excel {
         
         $spreadsheet = $reader->load($csvFile); 
         if($website_option == "2") {
-            $spreadsheet->getActiveSheet()->setAutoFilter('A1:B1');
+            $spreadsheet->getActiveSheet()->setAutoFilter('A1:C1');
         } else {
             $spreadsheet->getActiveSheet()->setAutoFilter('A1:D1');
         }

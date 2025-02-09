@@ -35,37 +35,6 @@ class UtilML {
     }
 
 
-    // public static function optimize_json_ml($json_string) {
-    //     $json_obj = json_decode($json_string, true);
-    //     $optimized_json_array = [];
-    //     if (isset($json_obj['pageState']['initialState']['results'])) {
-    //         $optimized_json_array['pageState']['initialState']['results'] = $json_obj['pageState']['initialState']['results'];
-    //     }
-    
-    //     if (isset($json_obj['pageStoreState']['locationSearch']['initialState']['results'])) {
-    //         $optimized_json_array['pageStoreState']['locationSearch']['initialState']['results'] = $json_obj['pageStoreState']['locationSearch']['initialState']['results'];
-    //     }
-    
-    //     if (isset($json_obj['pageStoreState']['locationSearch']['initialState']['pagination']['page_count'])) {
-    //         $optimized_json_array['pageStoreState']['locationSearch']['initialState']['pagination']['page_count'] = $json_obj['pageStoreState']['locationSearch']['initialState']['pagination']['page_count'];
-    //     }
-    
-    //     if (isset($json_obj['pageState']['initialState']['pagination']['next_page'])) {
-    //         $optimized_json_array['pageState']['initialState']['pagination']['next_page'] = $json_obj['pageState']['initialState']['pagination']['next_page'];
-    //     }
-
-    //     if (isset($json_obj['pageState']['initialState']['results']['polycard']['components'])) {
-    //         $optimized_json_array['pageState']['initialState']['results']['polycard']['components'] = $json_obj['pageState']['initialState']['results']['polycard']['components'];
-    //     }
-
-    //     if (isset($json_obj['pageStoreState']['locationSearch']['initialState']['results']['polycard']['components'])) {
-    //         $optimized_json_array['pageStoreState']['locationSearch']['initialState']['results']['polycard']['components'] = $json_obj['pageStoreState']['locationSearch']['initialState']['results']['polycard']['components'];
-    //     }
-
-    //     return json_encode($optimized_json_array);
-    // }
-    
-
     public static function searchForKeyValuePair($array, $targetKey, $targetValue = null) {
         $result = []; 
     

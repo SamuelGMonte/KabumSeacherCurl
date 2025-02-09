@@ -1,6 +1,7 @@
 <?php
 require_once 'UtilML.php';
 
+error_reporting(0);
 ini_set("memory_limit", "512M");
 
 header('Content-type: text/html; charset=UTF-8');

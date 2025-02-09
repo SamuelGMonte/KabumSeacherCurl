@@ -1,6 +1,7 @@
 <?php
 require_once 'Util.php';
 
+error_reporting(0);
 ini_set("memory_limit", "512M");
 
 header('Content-type: text/html; charset=UTF-8');
@@ -52,19 +53,6 @@ class Functions {
         return $ch;
     }
     
-
-    // public function get_user_page($url) {
-    //     $ch2 = curl_init();
-
-    //     curl_setopt($ch2, CURLOPT_URL, $url);
-    //     curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-    //     curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, false);
-    //     curl_setopt($ch2, CURLOPT_USERAGENT, $this->agent);
-
-    //     curl_multi_add_handle($this->multiCurl, $ch2);
-
-    //     return $ch2;
-    // }
 
     public function __destruct() {
         curl_multi_close($this->multiCurl);
